@@ -13,6 +13,8 @@
 <title>Elevation — Altitude Training Study Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
   :root{
     --paper:#F0F2EC;
@@ -657,7 +659,22 @@ function renderExport(){
     <div class="section-title">Export</div>
     <div class="note" style="margin-bottom:14px;">Download your raw scores or summary statistics as CSV — ready to drop into SPSS, Excel, or your thesis appendix.</div>
     <button id="exportRaw" class="secondary" style="width:100%; margin-bottom:10px;">Download Raw Data (CSV)</button>
-    <button id="exportSummary" class="secondary" style="width:100%;">Download Summary Stats (CSV)</button>
+    <button id="exportSummary" class="secondary" style="width:100%; margin-bottom:10px;">Download Summary Stats (CSV)</button>
+    <button id="exportReport" class="secondary" style="width:100%;">Download Analysis Report (describes results)</button>
+    <div class="note" style="margin-top:8px;">The report writes out, in plain language, what changed for each group on every variable, whether it's statistically significant, and how groups compare — plus a key-findings summary at the top.</div>
+  </div>
+  <div class="card">
+    <div class="section-title">Import</div>
+    <div class="note" style="margin-bottom:12px;">Bring in data from a file already on this phone — CSV, Word (.docx), or PDF. Works best with this app's own "Raw Data" export layout (Subject, Group, then Pre/Post per variable), but will also try to find that table inside a Word or PDF document — handy for restoring a backup, merging data from another device, or pulling in a typed-up field sheet.</div>
+    <input type="file" id="importFile" accept=".csv,text/csv,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf" style="display:none">
+    <button id="importBtn" class="secondary" style="width:100%;">Choose File (CSV / Word / PDF)</button>
+    <div id="importFileName" class="muted mono" style="margin-top:8px; display:none;"></div>
+    <div id="importStatus" class="muted" style="margin-top:8px; display:none;"></div>
+    <div class="toggle-row" id="importModeRow" style="margin-top:12px; display:none;">
+      <button id="importMerge" class="small" style="flex:1;">Merge (add / update)</button>
+      <button id="importReplace" class="small secondary" style="flex:1;">Replace all</button>
+    </div>
+    <div id="importPreview"></div>
   </div>
   <div class="card">
     <div class="section-title">Backup</div>
@@ -667,6 +684,226 @@ function renderExport(){
 }
 
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ================= IMPORT ================= */
+let pendingImport = null; // {subjects, scores, warnings, rowCount}
+
+function parseCsv(text){
+  // Minimal CSV parser: handles quoted fields, commas inside quotes, and \r\n or \n line endings.
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c==='"'){
+        if(text[i+1]==='"'){ field+='"'; i++; }
+        else inQuotes=false;
+      } else field+=c;
+    } else {
+      if(c==='"') inQuotes=true;
+      else if(c===','){ row.push(field); field=''; }
+      else if(c==='\n' || c==='\r'){
+        if(c==='\r' && text[i+1]==='\n') i++;
+        row.push(field); field='';
+        if(row.length>1 || row[0]!=='') rows.push(row);
+        row=[];
+      } else field+=c;
+    }
+  }
+  if(field!=='' || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+// For text pulled out of a Word doc or PDF (mammoth / pdf.js give plain text, not a CSV),
+// split each line on whatever delimiter it's most consistently using — comma, tab, or
+// 2+ spaces (common when a table gets flattened to text) — so the same header-matching
+// logic in buildImportFromRows can work on it.
+function splitLooseLine(line){
+  if(line.indexOf('\t')>-1) return line.split('\t').map(c=>c.trim());
+  if(line.indexOf(',')>-1) return parseCsv(line)[0] || [];
+  return line.split(/\s{2,}/).map(c=>c.trim()).filter(c=>c!=='');
+}
+
+function rowsFromPlainText(text){
+  return text.split(/\r?\n/)
+    .map(l=>l.trim())
+    .filter(l=>l!=='')
+    .map(splitLooseLine)
+    .filter(r=>r.length>1);
+}
+
+function groupKeyFromLabel(label){
+  const g = GROUPS.find(g=>g.label.toLowerCase()===String(label).trim().toLowerCase() || g.key.toLowerCase()===String(label).trim().toLowerCase());
+  return g ? g.key : null;
+}
+
+function buildImportFromRows(rows){
+  rows = rows.filter(r=>r.some(c=>String(c).trim()!==''));
+  if(rows.length<2) throw new Error('Couldn\'t find a data table in that file — it needs a header row plus at least one subject.');
+
+  // Find the header row: the one starting with Subject, Group (it may not be line 1 —
+  // a Word/PDF export can have a title or notes above the table).
+  let headerIdx = rows.findIndex(r => (r[0]||'').trim()==='Subject' && (r[1]||'').trim()==='Group');
+  if(headerIdx===-1){
+    throw new Error('No "Subject, Group" table found. Expected this app\'s "Download Raw Data" layout, either as a CSV or as a table inside the Word/PDF document.');
+  }
+  const header = rows[headerIdx].map(h=>String(h).trim());
+
+  // Map each expected Pre/Post column to its variable, by matching label text (order-independent).
+  const colToVar = {}; // colIndex -> {varKey, field}
+  VARIABLES.forEach(v=>{
+    const preIdx = header.findIndex(h=>h===`${v.label} Pre`);
+    const postIdx = header.findIndex(h=>h===`${v.label} Post`);
+    if(preIdx>-1) colToVar[preIdx] = {varKey:v.key, field:'pre'};
+    if(postIdx>-1) colToVar[postIdx] = {varKey:v.key, field:'post'};
+  });
+  if(Object.keys(colToVar).length===0){
+    throw new Error('No matching variable columns found in the file header.');
+  }
+
+  const subjects = [];
+  const scores = {};
+  const warnings = [];
+
+  rows.slice(headerIdx+1).forEach((r, idx)=>{
+    const lineNo = headerIdx+idx+2;
+    const name = (r[0]||'').trim();
+    if(!name){ warnings.push(`Row ${lineNo}: missing subject name — skipped.`); return; }
+    const groupKey = groupKeyFromLabel(r[1]);
+    if(!groupKey){ warnings.push(`Row ${lineNo}: unrecognized group "${r[1]}" for ${name} — skipped.`); return; }
+
+    const id = 's' + Date.now() + Math.floor(Math.random()*100000) + idx;
+    subjects.push({id, name, group: groupKey});
+    scores[id] = {};
+
+    Object.keys(colToVar).forEach(colIdxStr=>{
+      const colIdx = Number(colIdxStr);
+      const {varKey, field} = colToVar[colIdx];
+      const raw = r[colIdx]===undefined ? '' : String(r[colIdx]).trim();
+      if(!scores[id][varKey]) scores[id][varKey] = {pre:'', post:''};
+      if(raw===''){ return; }
+      if(isNaN(parseFloat(raw))){
+        warnings.push(`Row ${lineNo}: non-numeric value "${raw}" for ${name} — left blank.`);
+        return;
+      }
+      scores[id][varKey][field] = raw;
+    });
+  });
+
+  if(subjects.length===0){
+    throw new Error('No valid subject rows found in that file.');
+  }
+  if(subjects.length>MAX_SUBJECTS){
+    warnings.push(`File contains ${subjects.length} subjects, above the ${MAX_SUBJECTS} roster limit — only the first ${MAX_SUBJECTS} will be kept.`);
+  }
+
+  return {
+    subjects: subjects.slice(0, MAX_SUBJECTS),
+    scores,
+    warnings,
+    rowCount: subjects.length
+  };
+}
+
+function buildImportFromCsv(text){
+  return buildImportFromRows(parseCsv(text));
+}
+
+function buildImportFromPlainText(text){
+  return buildImportFromRows(rowsFromPlainText(text));
+}
+
+/* ---- File-type extraction: turns docx/pdf into plain text, then reuses the table parser ---- */
+function extractTextFromDocx(file){
+  if(typeof mammoth==='undefined'){
+    return Promise.reject(new Error('Word file support didn\'t load — check your connection and try again.'));
+  }
+  return file.arrayBuffer().then(buf=>mammoth.extractRawText({arrayBuffer: buf})).then(res=>res.value);
+}
+
+function extractTextFromPdf(file){
+  if(typeof pdfjsLib==='undefined'){
+    return Promise.reject(new Error('PDF support didn\'t load — check your connection and try again.'));
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  return file.arrayBuffer().then(buf=>pdfjsLib.getDocument({data: buf}).promise).then(async pdf=>{
+    let text = '';
+    for(let i=1;i<=pdf.numPages;i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      // Group by y-position so cells on the same table row stay on the same line.
+      const lines = {};
+      content.items.forEach(item=>{
+        const y = Math.round(item.transform[5]);
+        if(!lines[y]) lines[y] = [];
+        lines[y].push(item.str);
+      });
+      const ys = Object.keys(lines).map(Number).sort((a,b)=>b-a);
+      ys.forEach(y=>{ text += lines[y].join('  ') + '\n'; });
+      text += '\n';
+    }
+    return text;
+  });
+}
+
+function importFromFile(file){
+  const name = (file.name||'').toLowerCase();
+  const isPdf = name.endsWith('.pdf') || file.type==='application/pdf';
+  const isDocx = name.endsWith('.docx') || file.type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const isCsv = name.endsWith('.csv') || file.type==='text/csv';
+
+  if(isPdf){
+    return extractTextFromPdf(file).then(buildImportFromPlainText);
+  }
+  if(isDocx){
+    return extractTextFromDocx(file).then(buildImportFromPlainText);
+  }
+  if(isCsv){
+    return file.text().then(buildImportFromCsv);
+  }
+  // Unknown extension — try as plain text/CSV as a best-effort fallback.
+  return file.text().then(buildImportFromPlainText);
+}
+
+function renderImportPreview(){
+  const box = document.getElementById('importPreview');
+  if(!box) return;
+  if(!pendingImport){ box.innerHTML=''; return; }
+  const {subjects, warnings, rowCount} = pendingImport;
+  const byGroup = GROUPS.map(g=>`${subjectsCountIn(subjects,g.key)} ${g.label}`).join(' · ');
+  box.innerHTML = `
+    <div class="note" style="margin-top:12px; padding-top:10px; border-top:1px solid var(--line);">
+      <strong style="color:var(--ink);">${rowCount} subject${rowCount===1?'':'s'} found</strong> — ${byGroup}
+      ${warnings.length ? `<div style="margin-top:6px; color:var(--bad);">${warnings.slice(0,5).map(w=>escapeHtml(w)).join('<br>')}${warnings.length>5?`<br>…and ${warnings.length-5} more.`:''}</div>` : ''}
+    </div>`;
+}
+function subjectsCountIn(subjects, groupKey){ return subjects.filter(s=>s.group===groupKey).length; }
+
+function applyImport(mode){
+  if(!pendingImport) return;
+  const {subjects, scores} = pendingImport;
+
+  if(mode==='replace'){
+    state.subjects = subjects;
+    state.scores = scores;
+  } else {
+    // Merge: match existing subjects by name+group (case-insensitive); update their scores,
+    // otherwise add as new (space permitting).
+    subjects.forEach(imp=>{
+      const existing = state.subjects.find(s=>s.name.toLowerCase()===imp.name.toLowerCase() && s.group===imp.group);
+      if(existing){
+        state.scores[existing.id] = Object.assign({}, state.scores[existing.id], scores[imp.id]);
+      } else if(state.subjects.length<MAX_SUBJECTS){
+        state.subjects.push(imp);
+        state.scores[imp.id] = scores[imp.id];
+      }
+    });
+  }
+  saveState();
+  pendingImport = null;
+  render();
+  showToast(mode==='replace' ? 'Data replaced from file' : 'Data merged from file');
+}
 
 /* ================= EVENTS ================= */
 function bindEvents(){
@@ -745,6 +982,8 @@ function bindEvents(){
     if(er) er.onclick = downloadRawCsv;
     const es = document.getElementById('exportSummary');
     if(es) es.onclick = downloadSummaryCsv;
+    const rep = document.getElementById('exportReport');
+    if(rep) rep.onclick = downloadAnalysisReport;
     const rst = document.getElementById('resetAll');
     if(rst) rst.onclick = ()=>{
       if(confirm('This clears all subjects and scores from this device. Continue?')){
@@ -752,6 +991,68 @@ function bindEvents(){
         saveState();
         render();
         showToast('All data cleared');
+      }
+    };
+
+    const fileInput = document.getElementById('importFile');
+    const importBtn = document.getElementById('importBtn');
+    const fileNameEl = document.getElementById('importFileName');
+    const statusEl = document.getElementById('importStatus');
+    const modeRow = document.getElementById('importModeRow');
+
+    if(importBtn) importBtn.onclick = ()=> fileInput && fileInput.click();
+
+    if(fileInput) fileInput.onchange = ()=>{
+      const file = fileInput.files && fileInput.files[0];
+      pendingImport = null;
+      if(modeRow) modeRow.style.display = 'none';
+      const box = document.getElementById('importPreview');
+      if(box) box.innerHTML = '';
+      if(!file){
+        if(fileNameEl) fileNameEl.style.display='none';
+        if(statusEl) statusEl.style.display='none';
+        return;
+      }
+
+      if(fileNameEl){
+        fileNameEl.textContent = file.name;
+        fileNameEl.style.display = 'block';
+      }
+      if(statusEl){
+        statusEl.textContent = 'Reading file…';
+        statusEl.style.display = 'block';
+      }
+
+      importFromFile(file).then(result=>{
+        pendingImport = result;
+        if(statusEl) statusEl.style.display = 'none';
+        if(modeRow) modeRow.style.display = 'flex';
+        renderImportPreview();
+        showToast('File read — choose how to import');
+      }).catch(err=>{
+        pendingImport = null;
+        if(statusEl) statusEl.style.display = 'none';
+        if(modeRow) modeRow.style.display = 'none';
+        const box = document.getElementById('importPreview');
+        if(box) box.innerHTML = `<div class="note" style="margin-top:12px; color:var(--bad);">${escapeHtml(err.message||'Could not read that file.')}</div>`;
+        showToast('Could not read that file');
+      });
+    };
+
+    const mergeBtn = document.getElementById('importMerge');
+    const replaceBtn = document.getElementById('importReplace');
+    if(mergeBtn) mergeBtn.onclick = ()=>{
+      if(!pendingImport) return;
+      applyImport('merge');
+      if(fileInput) fileInput.value = '';
+      if(fileNameEl) fileNameEl.style.display='none';
+    };
+    if(replaceBtn) replaceBtn.onclick = ()=>{
+      if(!pendingImport) return;
+      if(confirm('This replaces every subject and score currently on this device with the contents of the file. Continue?')){
+        applyImport('replace');
+        if(fileInput) fileInput.value = '';
+        if(fileNameEl) fileNameEl.style.display='none';
       }
     };
   }
@@ -801,6 +1102,147 @@ function downloadSummaryCsv(){
   });
   triggerDownload('elevation-summary-stats.csv', lines.join('\n'));
   showToast('Summary stats downloaded');
+}
+
+/* ================= ANALYSIS REPORT (described results) ================= */
+function pctChange(preMean, postMean){
+  if(preMean===0) return null;
+  return ((postMean-preMean)/Math.abs(preMean))*100;
+}
+
+// A variable where a lower post value is the "better" direction (times/speed based).
+function lowerIsBetter(v){ return v.unit==='sec'; }
+
+function describeVariableResult(v, groupData, anova, tukey){
+  const lines = [];
+  lines.push(`${v.label} (${v.unit})`);
+  lines.push('-'.repeat(v.label.length + v.unit.length + 3));
+
+  groupData.forEach(gd=>{
+    const g = gd.group;
+    if(gd.pre.length===0){
+      lines.push(`  ${g.label}: no complete pre/post pairs recorded — skipped.`);
+      return;
+    }
+    const preM = mean(gd.pre), postM = mean(gd.post);
+    const gainM = mean(gd.gains);
+    const better = lowerIsBetter(v) ? gainM < 0 : gainM > 0;
+    const dir = gainM===0 ? 'showed no change' : (better ? 'improved' : 'declined');
+    const pct = pctChange(preM, postM);
+    const pctStr = pct===null ? '' : ` (${pct>0?'+':''}${pct.toFixed(1)}%)`;
+    let sigStr = 'not enough paired data to test significance';
+    if(gd.paired){
+      const p = gd.paired;
+      sigStr = p.p<0.05
+        ? `a statistically significant change (t(${p.df})=${p.t.toFixed(2)}, p=${p.p<0.001?'<0.001':p.p.toFixed(3)})`
+        : `no statistically significant change (t(${p.df})=${p.t.toFixed(2)}, p=${p.p.toFixed(3)})`;
+    }
+    lines.push(`  ${g.label} (n=${gd.pre.length}): mean ${preM.toFixed(2)} pre → ${postM.toFixed(2)} post, ${dir}${pctStr}. This is ${sigStr}.`);
+  });
+
+  if(anova){
+    const sig = anova.p<0.05;
+    lines.push(`  Between-group ANOVA: F(${anova.df1},${anova.df2})=${anova.F.toFixed(2)}, p=${anova.p<0.001?'<0.001':anova.p.toFixed(3)} — ${sig?'a significant difference exists between groups':'no significant difference between groups'} on this variable.`);
+    if(sig && tukey){
+      const sigPairs = tukey.results.filter(r=>r.sig);
+      if(sigPairs.length){
+        lines.push(`  Tukey HSD flags: ${sigPairs.map(r=>r.pair).join('; ')} differ significantly.`);
+      } else {
+        lines.push(`  Tukey HSD post-hoc found no individual pair reaching significance despite the overall ANOVA result.`);
+      }
+    }
+  } else {
+    lines.push(`  Between-group ANOVA: not enough complete data across all three groups to compare.`);
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
+function buildAnalysisReport(){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+
+  const header = [
+    'ELEVATION — ALTITUDE TRAINING STUDY',
+    'Analysis Report (auto-generated, describes results in plain language)',
+    `Generated: ${dateStr}`,
+    `Subjects on device: ${state.subjects.length} (${GROUPS.map(g=>`${subjectsInGroup(g.key).length} ${g.label}`).join(', ')})`,
+    '',
+    '='.repeat(60),
+    ''
+  ].join('\n');
+
+  const sigFindings = [];
+  const bodyParts = VARIABLES.map(v=>{
+    const groupData = GROUPS.map(g=>{
+      const ids = subjectsInGroup(g.key).map(s=>s.id);
+      const {pre, post} = pairedArraysForVar(ids, v.key);
+      const paired = tTestPaired(pre, post);
+      const gains = pre.map((p,i)=>post[i]-p);
+      return {group:g, pre, post, gains, paired};
+    });
+    const metricArrays = groupData.map(gd=>gd.gains);
+    const anova = oneWayAnova(metricArrays);
+    let tukey = null;
+    if(anova){
+      const labeled = GROUPS.map((g,i)=>({label:g.label, values: metricArrays[i]}));
+      tukey = tukeyHSD(labeled, anova.msw, anova.df2);
+    }
+
+    // collect notable findings for the summary section
+    groupData.forEach(gd=>{
+      if(gd.paired && gd.paired.p<0.05){
+        const better = lowerIsBetter(v) ? mean(gd.gains)<0 : mean(gd.gains)>0;
+        sigFindings.push(`${gd.group.label} showed a significant ${better?'improvement':'decline'} in ${v.label} (p=${gd.paired.p<0.001?'<0.001':gd.paired.p.toFixed(3)}).`);
+      }
+    });
+    if(anova && anova.p<0.05){
+      sigFindings.push(`Groups differed significantly on ${v.label} (ANOVA p=${anova.p<0.001?'<0.001':anova.p.toFixed(3)}).`);
+    }
+
+    return describeVariableResult(v, groupData, anova, tukey);
+  });
+
+  const summarySection = [
+    'KEY FINDINGS AT A GLANCE',
+    '-'.repeat(25),
+    sigFindings.length
+      ? sigFindings.map(f=>`• ${f}`).join('\n')
+      : '• No statistically significant results were found across the variables currently entered — this may reflect small sample size, incomplete pre/post pairs, or a genuine absence of effect.',
+    '',
+    '='.repeat(60),
+    'DETAILED RESULTS BY VARIABLE',
+    '='.repeat(60),
+    ''
+  ].join('\n');
+
+  const footer = [
+    '='.repeat(60),
+    'NOTES',
+    '-'.repeat(60),
+    'This report is generated on-device from the data entered in the Elevation app.',
+    'Statistics use a standard incomplete-beta approximation for t/F distributions',
+    'and a k=3 studentized-range table for Tukey HSD. For thesis submission, verify',
+    'key values against SPSS or another statistical package before citing them.',
+    ''
+  ].join('\n');
+
+  return header + summarySection + bodyParts.join('\n') + footer;
+}
+
+function downloadAnalysisReport(){
+  if(state.subjects.length<2){
+    showToast('Add at least two subjects with scores first');
+    return;
+  }
+  const report = buildAnalysisReport();
+  const blob = new Blob([report], {type:'text/plain;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'elevation-analysis-report.txt';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Analysis report downloaded');
 }
 
 /* ================= SPLASH SCREEN ================= */
