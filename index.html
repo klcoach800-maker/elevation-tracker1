@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Elevation">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#14231C">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAEP0lEQVR4nO3cP27UWADH8WSFREdFSYPgAHAPOq6BtkJ7CESFuAYd90gOEIkLUKzS0W1h7WiUmZ/njf89P/vzUZpMnHjC+/r52TPh9uWbVzdwzl+1nwDrJQ4icRCJg0gcROIgEgeROIjEQSQOInEQiYNIHETiIBIHkTiIxEEkDiJxEImDSBxE4iASB5E4iMRBJA4icRCJg0gcROIgEgeROIjEQSQOInEQiYNIHETiIBIHkTiIxEEkDiJxEImDSBxE4iASB5E4iMRBJA4icRA9q/0E2vBwd7/8Tt++f7f8To+ZOS6rUkbF/R6I44K6I1R37+LoU/3YrfscxEEkDiJxEImDyH2OKK0E57v9sIb17zEzB5E4iMSxIumEVet0Iw4icRCJg0gcRGPvc1xcK/XcFbhqnVX9zQ07NCqO/tE9Hs4frx+Pv/Tx14vDBoWJPNzd62Nhw08rhWX8eP34pIwnD5YP+ZJXdMvfHl2hgXEUjtNpFuVfHbNfJjHLgrQ7vErGvttmV4djQ1ytEE0fR/m00TF5rJaZg2ji93OMmQBOv/fs8tM17WKmnDmM2XiremF2SByuJ3dirjVHdw902i2r29vUaEF6hqmxM2McJVNCQ9PGDs07c/SPvTJWbvbTysdfL04jOPvgqb2d49dmob9bmXaScKtjpMJFlT9qatI/f386/vTLt+/l31u+3BZHGw4z5ZMsjh8sSeSqCzGXsi05W0bhV2/+Px13HyW7E0cDurG8OPYl2zzc3XcfJfudLI7NrBC9QfDg6jjcPVxY+bTRKd/yorWfVnZ4vM5kwFHd6tXKhm91vH3/bsnpueefce0zBxWJg0gca9edYsrvgV51t7Rfq2uOYZ5/+Hr86Z+fn2s9kybsZeZ4/uHrkzLSgytUPnmkbYatcHcRR38BTfTR6e9jwAml/4qvgThGXrKWjP1hm9XeHj08sS/fvp9GcPbB8Rpec4z5r0FadHxrZ44UTk0zc6xwGLqnVH7K6LZc4S9S0XVxeGFlVxpYc1CLOLZv8HzfRhx1lwJbXYhc/L3aiOPm+hHqDpfye6DdlqcHWZUyVvLn1M3EcVNjnLY6ZxRq7D7HgNH68/PzxQvawwSz8xqeaGnmGKz/5OLlt6SxmWOwroANvCq75LJjL3F0WqxhJiUn0F2cVhhmgjgs4rbqiji8sLI3TisrNet8XPjDb/99/L3Mnhhgjtm6fLzMHKs2+YF31Q/c16VsiypOzGYOInEQjY3DanTDRsWhjG0bHocyNu/25ZtXtZ8DK2VBSiQOInEQiYNIHETiIBIHkTiIxEEkDiJxEImDSBxE4iASB5E4iMRBJA4icRCJg0gcROIgEgeROIjEQSQOInEQiYNIHETiIBIHkTiIxEEkDiJxEImDSBxE4iASB5E4iMRBJA4icRCJg0gcROIgEgeROIjEQSQOInEQiYNIHETiIBIH0X9uBQ7gkhBcaQAAAABJRU5ErkJggg==">
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAEP0lEQVR4nO3cP27UWADH8WSFREdFSYPgAHAPOq6BtkJ7CESFuAYd90gOEIkLUKzS0W1h7WiUmZ/njf89P/vzUZpMnHjC+/r52TPh9uWbVzdwzl+1nwDrJQ4icRCJg0gcROIgEgeROIjEQSQOInEQiYNIHETiIBIHkTiIxEEkDiJxEImDSBxE4iASB5E4iMRBJA4icRCJg0gcROIgEgeROIjEQSQOInEQiYNIHETiIBIHkTiIxEEkDiJxEImDSBxE4iASB5E4iMRBJA4icRA9q/0E2vBwd7/8Tt++f7f8To+ZOS6rUkbF/R6I44K6I1R37+LoU/3YrfscxEEkDiJxEImDyH2OKK0E57v9sIb17zEzB5E4iMSxIumEVet0Iw4icRCJg0gcRGPvc1xcK/XcFbhqnVX9zQ07NCqO/tE9Hs4frx+Pv/Tx14vDBoWJPNzd62Nhw08rhWX8eP34pIwnD5YP+ZJXdMvfHl2hgXEUjtNpFuVfHbNfJjHLgrQ7vErGvttmV4djQ1ytEE0fR/m00TF5rJaZg2ji93OMmQBOv/fs8tM17WKmnDmM2XiremF2SByuJ3dirjVHdw902i2r29vUaEF6hqmxM2McJVNCQ9PGDs07c/SPvTJWbvbTysdfL04jOPvgqb2d49dmob9bmXaScKtjpMJFlT9qatI/f386/vTLt+/l31u+3BZHGw4z5ZMsjh8sSeSqCzGXsi05W0bhV2/+Px13HyW7E0cDurG8OPYl2zzc3XcfJfudLI7NrBC9QfDg6jjcPVxY+bTRKd/yorWfVnZ4vM5kwFHd6tXKhm91vH3/bsnpueefce0zBxWJg0gca9edYsrvgV51t7Rfq2uOYZ5/+Hr86Z+fn2s9kybsZeZ4/uHrkzLSgytUPnmkbYatcHcRR38BTfTR6e9jwAml/4qvgThGXrKWjP1hm9XeHj08sS/fvp9GcPbB8Rpec4z5r0FadHxrZ44UTk0zc6xwGLqnVH7K6LZc4S9S0XVxeGFlVxpYc1CLOLZv8HzfRhx1lwJbXYhc/L3aiOPm+hHqDpfye6DdlqcHWZUyVvLn1M3EcVNjnLY6ZxRq7D7HgNH68/PzxQvawwSz8xqeaGnmGKz/5OLlt6SxmWOwroANvCq75LJjL3F0WqxhJiUn0F2cVhhmgjgs4rbqiji8sLI3TisrNet8XPjDb/99/L3Mnhhgjtm6fLzMHKs2+YF31Q/c16VsiypOzGYOInEQjY3DanTDRsWhjG0bHocyNu/25ZtXtZ8DK2VBSiQOInEQiYNIHETiIBIHkTiIxEEkDiJxEImDSBxE4iASB5E4iMRBJA4icRCJg0gcROIgEgeROIjEQSQOInEQiYNIHETiIBIHkTiIxEEkDiJxEImDSBxE4iASB5E4iMRBJA4icRCJg0gcROIgEgeROIjEQSQOInEQiYNIHETiIBIH0X9uBQ7gkhBcaQAAAABJRU5ErkJggg==">
 <title>Elevation — Altitude Training Study Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -145,9 +152,64 @@
   .toggle-row button{flex:1;}
   .note{font-size:12px; color:var(--ink-soft); line-height:1.5; margin-top:4px;}
   .disclaimer{font-size:11.5px; color:var(--ink-soft); line-height:1.5; border-top:1px dashed var(--line); margin-top:14px; padding-top:10px;}
+
+  /* ---------- Splash / Credit Screen ---------- */
+  #splashScreen{
+    position:fixed; inset:0; z-index:500;
+    background: radial-gradient(120% 140% at 50% 0%, #1C2E22 0%, #101B15 55%, #0B120E 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:22px; padding:24px; text-align:center;
+    transition: opacity 0.7s ease, visibility 0.7s ease;
+  }
+  #splashScreen.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+  .splash-mark{ width:132px; opacity:0; animation: splashRise 0.9s ease forwards 0.15s; }
+  .splash-mark svg{ display:block; width:100%; height:auto; }
+  .splash-rule{ width:34px; height:1px; background:linear-gradient(90deg, transparent, #C98A1F, transparent); opacity:0; animation: splashFade 0.8s ease forwards 0.5s; }
+  .splash-title{
+    font-family:'Fraunces',serif; font-weight:600; font-size:26px; letter-spacing:-0.01em;
+    color:#F4F6F1; opacity:0; animation: splashFade 0.9s ease forwards 0.55s;
+  }
+  .splash-tag{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase;
+    color:#8FA08B; opacity:0; animation: splashFade 0.9s ease forwards 0.75s;
+  }
+  .splash-credit{
+    margin-top:8px; font-family:'Inter',sans-serif; font-size:13px; color:#C7D0C4;
+    opacity:0; animation: splashFade 0.9s ease forwards 0.95s;
+  }
+  .splash-credit .name{ display:block; font-family:'Fraunces',serif; font-weight:600; font-size:16px; color:#E8B34A; margin-top:4px; letter-spacing:0.01em; }
+  .splash-credit .role{ display:block; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:#8FA08B; margin-top:3px; }
+  .splash-hint{
+    position:absolute; bottom:calc(28px + env(safe-area-inset-bottom));
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+    color:#5E6B5A; opacity:0; animation: splashFade 0.8s ease forwards 1.3s;
+  }
+  @keyframes splashRise{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes splashFade{ from{opacity:0;} to{opacity:1;} }
 </style>
 </head>
 <body>
+
+<div id="splashScreen">
+  <div class="splash-mark">
+    <svg viewBox="0 0 400 34" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,28 C40,28 50,10 90,10 C120,10 130,22 170,22 C210,22 220,4 260,4 C300,4 310,26 340,26 C365,26 375,16 400,16"
+            fill="none" stroke="#F0F2EC" stroke-width="2.2"/>
+      <circle cx="330" cy="18" r="5" fill="#8FA08B"/>
+      <circle cx="180" cy="22" r="5" fill="#1B6FA8"/>
+      <circle cx="80" cy="12" r="5" fill="#C1440E"/>
+    </svg>
+  </div>
+  <div class="splash-rule"></div>
+  <div class="splash-title">Elevation</div>
+  <div class="splash-tag">Altitude Training Study Tracker</div>
+  <div class="splash-credit">
+    Designed by
+    <span class="name">Hashim Veeran A</span>
+    <span class="role">Research Scholar</span>
+  </div>
+  <div class="splash-hint">Tap anywhere to continue</div>
+</div>
 
 <header class="top">
   <div class="brand-row">
@@ -217,22 +279,22 @@ let dataSubjectId = null;
 let analysisVar = VARIABLES[0].key;
 let analysisMetric = 'gain'; // 'gain' | 'post'
 
-/* ================= STORAGE ================= */
-async function loadState(){
+/* ================= STORAGE (on-device, no server needed) ================= */
+function loadState(){
   try{
-    const res = await window.storage.get(STORAGE_KEY);
-    if(res && res.value){
-      const parsed = JSON.parse(res.value);
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
       state.subjects = parsed.subjects || [];
       state.scores = parsed.scores || {};
     }
-  }catch(e){ /* no data yet */ }
+  }catch(e){ /* no data yet, or storage unavailable */ }
   render();
 }
-async function saveState(){
+function saveState(){
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify(state));
-  }catch(e){ showToast('Save failed — try again'); }
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }catch(e){ showToast('Save failed — your browser may be blocking storage'); }
 }
 
 function showToast(msg){
@@ -241,6 +303,14 @@ function showToast(msg){
   t.classList.add('show');
   clearTimeout(showToast._tm);
   showToast._tm = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function showAutoSaveIndicator(){
+  const t = document.getElementById('toast');
+  t.textContent = '✓ Saved';
+  t.style.opacity = '';
+  t.classList.add('show');
+  clearTimeout(showAutoSaveIndicator._tm);
+  showAutoSaveIndicator._tm = setTimeout(()=>t.classList.remove('show'), 900);
 }
 
 /* ================= STATS ================= */
@@ -468,7 +538,8 @@ function renderDataEntry(){
   <div class="card">
     <div class="section-title">Test Scores — 12 Variables</div>
     ${varsHtml}
-    <button id="saveScoresBtn" style="width:100%; margin-top:16px;">Save Scores</button>
+    <button id="saveScoresBtn" style="width:100%; margin-top:16px;">Confirm Save</button>
+    <div class="note" style="margin-top:8px;">Every field auto-saves as you type — this button just gives you a clear confirmation. Your data stays on this device until you clear it from the Export tab.</div>
   </div>`;
 }
 
@@ -576,7 +647,7 @@ function renderAnalysis(){
     <div class="section-title" style="margin-bottom:8px;">One-Way ANOVA (Altitude vs Sea-Level vs Control)</div>
     ${anovaHtml}
     ${tukeyHtml}
-    <div class="disclaimer">This is a field-check tool. For thesis submission, confirm all values against SPSS output — p-values here use a standard incomplete-beta t/F approximation and a k=3 studentized-range table for Tukey HSD.</div>
+    <div class="disclaimer">This is a field-check tool. For thesis submission, confirm all values against SPSS output — p-values here use a standard incomplete-beta t/F approximation and a k=3 studentized-range table for Tukey HSD. Your data lives only in this browser on this device — export a CSV backup regularly.</div>
   </div>`;
 }
 
@@ -590,7 +661,7 @@ function renderExport(){
   </div>
   <div class="card">
     <div class="section-title">Backup</div>
-    <div class="note">Your data is saved automatically on this device as you go. Use the button below to reset everything and start a fresh study.</div>
+    <div class="note">Every subject and score auto-saves to this device the moment you enter it — like a local database. It stays exactly as-is through app restarts, phone restarts, even months later, until you tap the button below.</div>
     <button id="resetAll" class="ghost" style="border:1px solid var(--line); margin-top:10px;">Clear all data</button>
   </div>`;
 }
@@ -641,6 +712,23 @@ function bindEvents(){
       saveState();
       showToast('Scores saved');
     };
+    // Auto-save as the person types, debounced, so nothing is lost even without tapping Save.
+    let autoSaveTimer = null;
+    document.querySelectorAll('[data-var]').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        setScore(dataSubjectId, inp.dataset.var, inp.dataset.field, inp.value);
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(()=>{
+          saveState();
+          showAutoSaveIndicator();
+        }, 600);
+      });
+      inp.addEventListener('blur', ()=>{
+        setScore(dataSubjectId, inp.dataset.var, inp.dataset.field, inp.value);
+        saveState();
+        showAutoSaveIndicator();
+      });
+    });
   }
 
   if(activeTab==='analysis'){
@@ -714,6 +802,20 @@ function downloadSummaryCsv(){
   triggerDownload('elevation-summary-stats.csv', lines.join('\n'));
   showToast('Summary stats downloaded');
 }
+
+/* ================= SPLASH SCREEN ================= */
+(function(){
+  const splash = document.getElementById('splashScreen');
+  let dismissed = false;
+  function dismiss(){
+    if(dismissed) return;
+    dismissed = true;
+    splash.classList.add('hide');
+    setTimeout(()=>{ if(splash.parentNode) splash.parentNode.removeChild(splash); }, 750);
+  }
+  splash.addEventListener('click', dismiss);
+  setTimeout(dismiss, 2400);
+})();
 
 /* ================= INIT ================= */
 loadState();
