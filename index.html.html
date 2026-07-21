@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Elevation — Altitude Training Study Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F0F2EC;
+    --paper-raised:#FFFFFF;
+    --ink:#14231C;
+    --ink-soft:#586257;
+    --line:#D9DED2;
+    --altitude:#C1440E;
+    --altitude-soft:#F3DCCB;
+    --sealevel:#1B6FA8;
+    --sealevel-soft:#D5E4ED;
+    --control:#6B6B6B;
+    --control-soft:#E3E3E1;
+    --amber:#C98A1F;
+    --amber-soft:#F3E4C3;
+    --good:#2F7A4F;
+    --bad:#B23A2E;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif;}
+  body{
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    min-height:100vh;
+  }
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:600; margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- Header ---------- */
+  header.top{
+    padding: calc(14px + env(safe-area-inset-top)) 18px 14px;
+    background: var(--ink);
+    color: var(--paper);
+    position: sticky; top:0; z-index:20;
+  }
+  .brand-row{display:flex; align-items:baseline; justify-content:space-between;}
+  .brand-row h1{font-size:20px; letter-spacing:-0.01em; color:var(--paper);}
+  .brand-row .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#9FAE9C; margin-bottom:2px;}
+  .contour-wrap{margin-top:10px;}
+  .contour-wrap svg{display:block; width:100%; height:34px;}
+  .legend{display:flex; gap:14px; margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.02em; color:#C7D0C4;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:7px; height:7px; border-radius:50%; display:inline-block;}
+
+  /* ---------- Layout ---------- */
+  main{padding:16px; max-width:640px; margin:0 auto;}
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .section-title{font-size:12px; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; margin-bottom:10px;}
+  .row{display:flex; gap:10px; align-items:center;}
+  .between{justify-content:space-between;}
+  .muted{color:var(--ink-soft); font-size:13px;}
+
+  input[type=text], input[type=number], select{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--line);
+    background:#FBFBF9; font-family:'Inter',sans-serif; font-size:15px; color:var(--ink);
+  }
+  input:focus, select:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  label{font-size:12px; color:var(--ink-soft); display:block; margin-bottom:4px; font-weight:500;}
+  .field{margin-bottom:10px;}
+
+  button{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:14px;
+    border-radius:10px; border:1px solid var(--ink); padding:11px 16px;
+    background:var(--ink); color:var(--paper); cursor:pointer;
+  }
+  button.secondary{background:transparent; color:var(--ink); border:1px solid var(--line);}
+  button.ghost{background:transparent; color:var(--bad); border:1px solid transparent; padding:6px 8px; font-size:13px;}
+  button.small{padding:7px 12px; font-size:13px;}
+  button:disabled{opacity:0.4; cursor:not-allowed;}
+  button:active{transform: scale(0.98);}
+
+  .pill{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; padding:3px 8px; border-radius:20px;
+    text-transform:uppercase; letter-spacing:0.04em; font-weight:600;
+  }
+  .pill.altitude{background:var(--altitude-soft); color:var(--altitude);}
+  .pill.sealevel{background:var(--sealevel-soft); color:var(--sealevel);}
+  .pill.control{background:var(--control-soft); color:var(--control);}
+
+  .subject-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 0; border-bottom:1px solid var(--line);
+  }
+  .subject-row:last-child{border-bottom:none;}
+  .subject-name{font-weight:600; font-size:14.5px;}
+  .subject-meta{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{text-align:left; padding:8px 6px; border-bottom:1px solid var(--line);}
+  th{font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); font-weight:600;}
+  td.num, th.num{text-align:right; font-family:'IBM Plex Mono',monospace;}
+  .sig-yes{color:var(--good); font-weight:700;}
+  .sig-no{color:var(--ink-soft);}
+
+  .empty{
+    text-align:center; padding:34px 16px; color:var(--ink-soft);
+  }
+  .empty h3{font-size:16px; margin-bottom:6px; color:var(--ink);}
+
+  .var-block{border-top:1px solid var(--line); padding-top:12px; margin-top:12px;}
+  .var-block:first-child{border-top:none; padding-top:0; margin-top:0;}
+  .var-label{font-weight:600; font-size:13.5px; margin-bottom:8px;}
+  .pp-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+  /* ---------- Tabs ---------- */
+  nav.tabbar{
+    position:fixed; bottom:0; left:0; right:0; z-index:30;
+    background: rgba(240,242,236,0.92); backdrop-filter: blur(10px);
+    border-top:1px solid var(--line);
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    display:flex; justify-content:space-around;
+  }
+  .tab-btn{
+    background:none; border:none; color:var(--ink-soft); font-family:'Inter',sans-serif;
+    font-size:11px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:4px 10px; border-radius:8px;
+  }
+  .tab-btn.active{color:var(--ink);}
+  .tab-btn.active .ic{background:var(--ink);}
+  .ic{width:18px; height:3px; border-radius:2px; background:var(--line);}
+
+  .toast{
+    position:fixed; bottom:calc(90px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--paper); padding:9px 16px; border-radius:20px;
+    font-size:13px; font-weight:500; opacity:0; pointer-events:none; transition:opacity 0.25s ease, transform 0.25s ease; z-index:40;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+
+  select#varSelect, select#metricSelect{font-family:'IBM Plex Mono',monospace; font-size:13px;}
+  .toggle-row{display:flex; gap:8px; margin-bottom:14px;}
+  .toggle-row button{flex:1;}
+  .note{font-size:12px; color:var(--ink-soft); line-height:1.5; margin-top:4px;}
+  .disclaimer{font-size:11.5px; color:var(--ink-soft); line-height:1.5; border-top:1px dashed var(--line); margin-top:14px; padding-top:10px;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand-row">
+    <div>
+      <div class="eyebrow">PhD Field Tracker</div>
+      <h1>Elevation</h1>
+    </div>
+    <div class="eyebrow" id="subjCountTop">0 / 30 subjects</div>
+  </div>
+  <div class="contour-wrap">
+    <svg viewBox="0 0 400 34" preserveAspectRatio="none">
+      <path d="M0,28 C40,28 50,10 90,10 C120,10 130,22 170,22 C210,22 220,4 260,4 C300,4 310,26 340,26 C365,26 375,16 400,16"
+            fill="none" stroke="#3B4A3E" stroke-width="1.5"/>
+      <circle cx="330" cy="18" r="4" fill="#6B6B6B"/>
+      <circle cx="180" cy="22" r="4" fill="#1B6FA8"/>
+      <circle cx="80" cy="12" r="4" fill="#C1440E"/>
+    </svg>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:#C1440E"></span>Altitude (Kashmir, 2500m+)</span>
+    <span><span class="dot" style="background:#1B6FA8"></span>Sea-Level (Nilambur)</span>
+    <span><span class="dot" style="background:#6B6B6B"></span>Control</span>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<nav class="tabbar">
+  <button class="tab-btn" data-tab="subjects"><span class="ic"></span>Subjects</button>
+  <button class="tab-btn" data-tab="data"><span class="ic"></span>Data Entry</button>
+  <button class="tab-btn" data-tab="analysis"><span class="ic"></span>Analysis</button>
+  <button class="tab-btn" data-tab="export"><span class="ic"></span>Export</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= CONSTANTS ================= */
+const GROUPS = [
+  {key:'Altitude', label:'Altitude', color:'#C1440E', class:'altitude'},
+  {key:'SeaLevel', label:'Sea-Level', color:'#1B6FA8', class:'sealevel'},
+  {key:'Control', label:'Control', color:'#6B6B6B', class:'control'},
+];
+
+const VARIABLES = [
+  {key:'hrr', label:'Heart Rate Recovery', unit:'bpm drop', cat:'Physiological'},
+  {key:'vc', label:'Vital Capacity', unit:'L', cat:'Physiological'},
+  {key:'rhr', label:'Resting Heart Rate', unit:'bpm', cat:'Physiological'},
+  {key:'vo2', label:'VO2 Max (Cooper)', unit:'ml/kg/min', cat:'Physiological'},
+  {key:'speed', label:'Speed — 30m Sprint', unit:'sec', cat:'Physiological'},
+  {key:'agility', label:'Agility — Illinois', unit:'sec', cat:'Physiological'},
+  {key:'power', label:'Explosive Power — Vertical Jump', unit:'cm', cat:'Physiological'},
+  {key:'anpower', label:'Anaerobic Power — Margaria-Kalamen', unit:'W', cat:'Physiological'},
+  {key:'flex', label:'Flexibility — Sit & Reach', unit:'cm', cat:'Physiological'},
+  {key:'dribble', label:'Dribbling', unit:'sec', cat:'Skill'},
+  {key:'passing', label:'Passing', unit:'pts /12', cat:'Skill'},
+  {key:'shooting', label:'Shooting', unit:'pts /16', cat:'Skill'},
+];
+
+const MAX_SUBJECTS = 30;
+const STORAGE_KEY = 'elevation-study-data';
+
+/* ================= STATE ================= */
+let state = { subjects: [], scores: {} }; // scores[subjectId][varKey] = {pre, post}
+let activeTab = 'subjects';
+let dataSubjectId = null;
+let analysisVar = VARIABLES[0].key;
+let analysisMetric = 'gain'; // 'gain' | 'post'
+
+/* ================= STORAGE ================= */
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      state.subjects = parsed.subjects || [];
+      state.scores = parsed.scores || {};
+    }
+  }catch(e){ /* no data yet */ }
+  render();
+}
+async function saveState(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(state));
+  }catch(e){ showToast('Save failed — try again'); }
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ================= STATS ================= */
+function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+function sd(arr){
+  if(arr.length<2) return 0;
+  const m = mean(arr);
+  const v = arr.reduce((a,b)=>a+(b-m)*(b-m),0)/(arr.length-1);
+  return Math.sqrt(v);
+}
+function gammaln(x){
+  const cof=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  let y=x, tmp=x+5.5; tmp-=(x+0.5)*Math.log(tmp);
+  let ser=1.000000000190015;
+  for(let j=0;j<6;j++){ y+=1; ser+=cof[j]/y; }
+  return -tmp+Math.log(2.5066282746310005*ser/x);
+}
+function betacf(a,b,x){
+  const MAXIT=100, EPS=3e-7, FPMIN=1e-30;
+  let qab=a+b, qap=a+1, qam=a-1;
+  let c=1, d=1-qab*x/qap;
+  if(Math.abs(d)<FPMIN) d=FPMIN;
+  d=1/d; let h=d;
+  for(let m=1;m<=MAXIT;m++){
+    const m2=2*m;
+    let aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN)d=FPMIN;
+    c=1+aa/c; if(Math.abs(c)<FPMIN)c=FPMIN;
+    d=1/d; h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN)d=FPMIN;
+    c=1+aa/c; if(Math.abs(c)<FPMIN)c=FPMIN;
+    d=1/d; const del=d*c; h*=del;
+    if(Math.abs(del-1)<EPS) break;
+  }
+  return h;
+}
+function betai(a,b,x){
+  if(x<=0) return 0;
+  if(x>=1) return 1;
+  const bt = Math.exp(gammaln(a+b)-gammaln(a)-gammaln(b)+a*Math.log(x)+b*Math.log(1-x));
+  if(x < (a+1)/(a+b+2)) return bt*betacf(a,b,x)/a;
+  return 1-bt*betacf(b,a,1-x)/b;
+}
+function tTestPaired(pre, post){
+  const n = pre.length;
+  if(n<2) return null;
+  const diffs = pre.map((p,i)=>post[i]-p);
+  const md = mean(diffs), sdd = sd(diffs);
+  if(sdd===0) return {t:0, df:n-1, p: md===0?1:0, meanDiff:md, n};
+  const t = md/(sdd/Math.sqrt(n));
+  const df = n-1;
+  const p = betai(df/2, 0.5, df/(df+t*t));
+  return {t, df, p, meanDiff:md, n};
+}
+function oneWayAnova(groupArrays){
+  // groupArrays: array of arrays of numbers (one per group)
+  const groups = groupArrays.filter(g=>g.length>0);
+  const k = groups.length;
+  const N = groups.reduce((a,g)=>a+g.length,0);
+  if(k<2 || N<=k) return null;
+  const grandMean = mean(groups.flat());
+  let ssb=0, ssw=0;
+  groups.forEach(g=>{
+    const m = mean(g);
+    ssb += g.length*(m-grandMean)*(m-grandMean);
+    g.forEach(x=> ssw += (x-m)*(x-m));
+  });
+  const dfb = k-1, dfw = N-k;
+  if(dfw<=0) return null;
+  const msb = ssb/dfb, msw = ssw/dfw;
+  if(msw===0) return {F:0, df1:dfb, df2:dfw, p:1, msw, groups};
+  const F = msb/msw;
+  const p = betai(dfw/2, dfb/2, dfw/(dfw+dfb*F));
+  return {F, df1:dfb, df2:dfw, p, msw, groups};
+}
+// Tukey HSD q-table (alpha=0.05, k=3 groups) — linear interpolation over df error
+const Q_TABLE_K3 = [
+  [5,4.60],[6,4.34],[7,4.16],[8,4.04],[9,3.95],[10,3.88],[11,3.82],[12,3.77],
+  [13,3.73],[14,3.70],[15,3.67],[16,3.65],[17,3.63],[18,3.61],[19,3.59],[20,3.58],
+  [24,3.53],[30,3.49],[40,3.44],[60,3.40],[120,3.36],[100000,3.31]
+];
+function qCritical(df){
+  if(df<=Q_TABLE_K3[0][0]) return Q_TABLE_K3[0][1];
+  for(let i=0;i<Q_TABLE_K3.length-1;i++){
+    const [d1,q1]=Q_TABLE_K3[i], [d2,q2]=Q_TABLE_K3[i+1];
+    if(df>=d1 && df<=d2){
+      const frac=(df-d1)/(d2-d1);
+      return q1 + frac*(q2-q1);
+    }
+  }
+  return Q_TABLE_K3[Q_TABLE_K3.length-1][1];
+}
+function tukeyHSD(groupsWithLabels, msw, dfw){
+  // groupsWithLabels: [{label, values}]
+  const q = qCritical(dfw);
+  const results = [];
+  for(let i=0;i<groupsWithLabels.length;i++){
+    for(let j=i+1;j<groupsWithLabels.length;j++){
+      const A = groupsWithLabels[i], B = groupsWithLabels[j];
+      if(A.values.length===0 || B.values.length===0) continue;
+      const nA=A.values.length, nB=B.values.length;
+      const nHarm = 2/(1/nA + 1/nB);
+      const diff = Math.abs(mean(A.values)-mean(B.values));
+      const hsd = q*Math.sqrt(msw/nHarm);
+      results.push({pair:`${A.label} – ${B.label}`, diff, hsd, sig: diff>hsd});
+    }
+  }
+  return {q, results};
+}
+
+/* ================= DATA HELPERS ================= */
+function getGroupInfo(key){ return GROUPS.find(g=>g.key===key); }
+function subjectsInGroup(gkey){ return state.subjects.filter(s=>s.group===gkey); }
+function getScore(subjId, varKey){
+  return (state.scores[subjId] && state.scores[subjId][varKey]) || {pre:'', post:''};
+}
+function setScore(subjId, varKey, field, value){
+  if(!state.scores[subjId]) state.scores[subjId] = {};
+  if(!state.scores[subjId][varKey]) state.scores[subjId][varKey] = {pre:'', post:''};
+  state.scores[subjId][varKey][field] = value;
+}
+function pairedArraysForVar(subjectIds, varKey){
+  const pre=[], post=[];
+  subjectIds.forEach(id=>{
+    const s = getScore(id, varKey);
+    if(s.pre!=='' && s.post!=='' && !isNaN(parseFloat(s.pre)) && !isNaN(parseFloat(s.post))){
+      pre.push(parseFloat(s.pre)); post.push(parseFloat(s.post));
+    }
+  });
+  return {pre, post};
+}
+
+/* ================= RENDER ================= */
+function render(){
+  document.getElementById('subjCountTop').textContent = `${state.subjects.length} / ${MAX_SUBJECTS} subjects`;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===activeTab));
+  const app = document.getElementById('app');
+  if(activeTab==='subjects') app.innerHTML = renderSubjects();
+  else if(activeTab==='data') app.innerHTML = renderDataEntry();
+  else if(activeTab==='analysis') app.innerHTML = renderAnalysis();
+  else app.innerHTML = renderExport();
+  bindEvents();
+}
+
+function renderSubjects(){
+  let rows = state.subjects.map(s=>{
+    const g = getGroupInfo(s.group);
+    return `
+    <div class="subject-row">
+      <div>
+        <div class="subject-name">${escapeHtml(s.name)}</div>
+        <div class="subject-meta"><span class="pill ${g.class}">${g.label}</span></div>
+      </div>
+      <button class="ghost" data-remove="${s.id}">Remove</button>
+    </div>`;
+  }).join('');
+  if(!rows) rows = `<div class="empty"><h3>No subjects yet</h3><div class="note">Add your first subject below — up to ${MAX_SUBJECTS} across the three groups.</div></div>`;
+
+  const disabled = state.subjects.length>=MAX_SUBJECTS;
+  return `
+  <div class="card">
+    <div class="section-title">Add Subject</div>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="newName" placeholder="e.g. Player 14" ${disabled?'disabled':''}>
+    </div>
+    <div class="field">
+      <label>Group</label>
+      <select id="newGroup" ${disabled?'disabled':''}>
+        ${GROUPS.map(g=>`<option value="${g.key}">${g.label}</option>`).join('')}
+      </select>
+    </div>
+    <button id="addSubjectBtn" ${disabled?'disabled':''} style="width:100%">${disabled?'Roster full (30/30)':'Add Subject'}</button>
+  </div>
+  <div class="card">
+    <div class="row between" style="margin-bottom:6px;">
+      <div class="section-title" style="margin-bottom:0">Roster</div>
+      <div class="muted mono">${state.subjects.length} total</div>
+    </div>
+    ${GROUPS.map(g=>{
+      const n = subjectsInGroup(g.key).length;
+      return `<div class="muted" style="margin-bottom:2px;"><span class="pill ${g.class}">${g.label}</span> ${n} subject${n===1?'':'s'}</div>`;
+    }).join('')}
+    <div style="margin-top:10px;">${rows}</div>
+  </div>`;
+}
+
+function renderDataEntry(){
+  if(state.subjects.length===0){
+    return `<div class="card"><div class="empty"><h3>Add subjects first</h3><div class="note">Head to the Subjects tab to build your roster, then come back to log test scores.</div></div></div>`;
+  }
+  if(!dataSubjectId || !state.subjects.find(s=>s.id===dataSubjectId)){
+    dataSubjectId = state.subjects[0].id;
+  }
+  const subj = state.subjects.find(s=>s.id===dataSubjectId);
+  const g = getGroupInfo(subj.group);
+
+  const varsHtml = VARIABLES.map(v=>{
+    const s = getScore(dataSubjectId, v.key);
+    return `
+    <div class="var-block">
+      <div class="var-label">${v.label} <span class="muted">(${v.unit})</span></div>
+      <div class="pp-grid">
+        <div>
+          <label>Pre-test</label>
+          <input type="number" step="any" inputmode="decimal" data-var="${v.key}" data-field="pre" value="${s.pre}" placeholder="—">
+        </div>
+        <div>
+          <label>Post-test</label>
+          <input type="number" step="any" inputmode="decimal" data-var="${v.key}" data-field="post" value="${s.post}" placeholder="—">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="card">
+    <div class="section-title">Select Subject</div>
+    <select id="subjSelect" style="margin-bottom:4px;">
+      ${state.subjects.map(s=>`<option value="${s.id}" ${s.id===dataSubjectId?'selected':''}>${escapeHtml(s.name)} — ${getGroupInfo(s.group).label}</option>`).join('')}
+    </select>
+    <div class="row" style="margin-top:8px;"><span class="pill ${g.class}">${g.label}</span></div>
+  </div>
+  <div class="card">
+    <div class="section-title">Test Scores — 12 Variables</div>
+    ${varsHtml}
+    <button id="saveScoresBtn" style="width:100%; margin-top:16px;">Save Scores</button>
+  </div>`;
+}
+
+function renderAnalysis(){
+  const enoughData = state.subjects.length>=2;
+  if(!enoughData){
+    return `<div class="card"><div class="empty"><h3>Not enough data yet</h3><div class="note">Add subjects and log pre/post scores for at least a couple of them to run analysis.</div></div></div>`;
+  }
+  const v = VARIABLES.find(vv=>vv.key===analysisVar);
+
+  // per-group data
+  const groupData = GROUPS.map(g=>{
+    const ids = subjectsInGroup(g.key).map(s=>s.id);
+    const {pre, post} = pairedArraysForVar(ids, v.key);
+    const paired = tTestPaired(pre, post);
+    const gains = pre.map((p,i)=>post[i]-p);
+    return {group:g, pre, post, gains, paired};
+  });
+
+  const descRows = groupData.map(gd=>{
+    const n = gd.pre.length;
+    if(n===0) return `<tr><td>${gd.group.label}</td><td class="num" colspan="5">no paired data</td></tr>`;
+    return `<tr>
+      <td><span class="pill ${gd.group.class}">${gd.group.label}</span></td>
+      <td class="num">${n}</td>
+      <td class="num">${mean(gd.pre).toFixed(2)} ± ${sd(gd.pre).toFixed(2)}</td>
+      <td class="num">${mean(gd.post).toFixed(2)} ± ${sd(gd.post).toFixed(2)}</td>
+      <td class="num">${mean(gd.gains).toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+
+  const pairedRows = groupData.map(gd=>{
+    if(!gd.paired) return `<tr><td>${gd.group.label}</td><td class="num" colspan="4">n/a (need ≥2 paired)</td></tr>`;
+    const p = gd.paired;
+    return `<tr>
+      <td><span class="pill ${gd.group.class}">${gd.group.label}</span></td>
+      <td class="num">${p.t.toFixed(3)}</td>
+      <td class="num">${p.df}</td>
+      <td class="num">${p.p<0.001?'<0.001':p.p.toFixed(3)}</td>
+      <td class="num ${p.p<0.05?'sig-yes':'sig-no'}">${p.p<0.05?'Sig.':'n.s.'}</td>
+    </tr>`;
+  }).join('');
+
+  // between-group: pick metric
+  const metricArrays = groupData.map(gd => analysisMetric==='gain' ? gd.gains : gd.post);
+  const anova = oneWayAnova(metricArrays);
+  let anovaHtml = `<div class="muted">Not enough complete data across groups to run ANOVA for this variable.</div>`;
+  let tukeyHtml = '';
+  if(anova){
+    anovaHtml = `
+    <table>
+      <tr><th>F</th><th class="num">df</th><th class="num">p</th><th class="num">Result</th></tr>
+      <tr>
+        <td class="num">${anova.F.toFixed(3)}</td>
+        <td class="num">${anova.df1}, ${anova.df2}</td>
+        <td class="num">${anova.p<0.001?'<0.001':anova.p.toFixed(3)}</td>
+        <td class="num ${anova.p<0.05?'sig-yes':'sig-no'}">${anova.p<0.05?'Sig.':'n.s.'}</td>
+      </tr>
+    </table>`;
+    const labeled = GROUPS.map((g,i)=>({label:g.label, values: metricArrays[i]}));
+    const tukey = tukeyHSD(labeled, anova.msw, anova.df2);
+    tukeyHtml = `
+    <div class="section-title" style="margin-top:16px;">Tukey HSD Post-hoc (q crit. ${tukey.q.toFixed(2)})</div>
+    <table>
+      <tr><th>Pair</th><th class="num">Mean Diff</th><th class="num">HSD</th><th class="num">Result</th></tr>
+      ${tukey.results.map(r=>`<tr>
+        <td>${r.pair}</td>
+        <td class="num">${r.diff.toFixed(2)}</td>
+        <td class="num">${r.hsd.toFixed(2)}</td>
+        <td class="num ${r.sig?'sig-yes':'sig-no'}">${r.sig?'Sig.':'n.s.'}</td>
+      </tr>`).join('')}
+    </table>`;
+  }
+
+  return `
+  <div class="card">
+    <div class="section-title">Variable</div>
+    <select id="varSelect">
+      ${VARIABLES.map(vv=>`<option value="${vv.key}" ${vv.key===analysisVar?'selected':''}>${vv.label} (${vv.unit})</option>`).join('')}
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Descriptives — ${v.label}</div>
+    <table>
+      <tr><th>Group</th><th class="num">n</th><th class="num">Pre (M±SD)</th><th class="num">Post (M±SD)</th><th class="num">Mean Gain</th></tr>
+      ${descRows}
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Paired t-test (within group, pre vs post)</div>
+    <table>
+      <tr><th>Group</th><th class="num">t</th><th class="num">df</th><th class="num">p</th><th class="num">Result</th></tr>
+      ${pairedRows}
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Between-Group Comparison</div>
+    <div class="toggle-row">
+      <button class="${analysisMetric==='gain'?'':'secondary'}" id="metricGain">Gain (Post − Pre)</button>
+      <button class="${analysisMetric==='post'?'':'secondary'}" id="metricPost">Post-test only</button>
+    </div>
+    <div class="section-title" style="margin-bottom:8px;">One-Way ANOVA (Altitude vs Sea-Level vs Control)</div>
+    ${anovaHtml}
+    ${tukeyHtml}
+    <div class="disclaimer">This is a field-check tool. For thesis submission, confirm all values against SPSS output — p-values here use a standard incomplete-beta t/F approximation and a k=3 studentized-range table for Tukey HSD.</div>
+  </div>`;
+}
+
+function renderExport(){
+  return `
+  <div class="card">
+    <div class="section-title">Export</div>
+    <div class="note" style="margin-bottom:14px;">Download your raw scores or summary statistics as CSV — ready to drop into SPSS, Excel, or your thesis appendix.</div>
+    <button id="exportRaw" class="secondary" style="width:100%; margin-bottom:10px;">Download Raw Data (CSV)</button>
+    <button id="exportSummary" class="secondary" style="width:100%;">Download Summary Stats (CSV)</button>
+  </div>
+  <div class="card">
+    <div class="section-title">Backup</div>
+    <div class="note">Your data is saved automatically on this device as you go. Use the button below to reset everything and start a fresh study.</div>
+    <button id="resetAll" class="ghost" style="border:1px solid var(--line); margin-top:10px;">Clear all data</button>
+  </div>`;
+}
+
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ================= EVENTS ================= */
+function bindEvents(){
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.onclick = ()=>{ activeTab = b.dataset.tab; render(); };
+  });
+
+  if(activeTab==='subjects'){
+    const addBtn = document.getElementById('addSubjectBtn');
+    if(addBtn) addBtn.onclick = ()=>{
+      const nameEl = document.getElementById('newName');
+      const groupEl = document.getElementById('newGroup');
+      const name = nameEl.value.trim();
+      if(!name){ showToast('Enter a name first'); return; }
+      if(state.subjects.length>=MAX_SUBJECTS){ showToast('Roster is full'); return; }
+      const id = 's' + Date.now() + Math.floor(Math.random()*1000);
+      state.subjects.push({id, name, group: groupEl.value});
+      saveState();
+      render();
+      showToast('Subject added');
+    };
+    document.querySelectorAll('[data-remove]').forEach(b=>{
+      b.onclick = ()=>{
+        const id = b.dataset.remove;
+        state.subjects = state.subjects.filter(s=>s.id!==id);
+        delete state.scores[id];
+        if(dataSubjectId===id) dataSubjectId = null;
+        saveState();
+        render();
+        showToast('Subject removed');
+      };
+    });
+  }
+
+  if(activeTab==='data'){
+    const sel = document.getElementById('subjSelect');
+    if(sel) sel.onchange = ()=>{ dataSubjectId = sel.value; render(); };
+    const saveBtn = document.getElementById('saveScoresBtn');
+    if(saveBtn) saveBtn.onclick = ()=>{
+      document.querySelectorAll('[data-var]').forEach(inp=>{
+        setScore(dataSubjectId, inp.dataset.var, inp.dataset.field, inp.value);
+      });
+      saveState();
+      showToast('Scores saved');
+    };
+  }
+
+  if(activeTab==='analysis'){
+    const vsel = document.getElementById('varSelect');
+    if(vsel) vsel.onchange = ()=>{ analysisVar = vsel.value; render(); };
+    const mg = document.getElementById('metricGain');
+    const mp = document.getElementById('metricPost');
+    if(mg) mg.onclick = ()=>{ analysisMetric='gain'; render(); };
+    if(mp) mp.onclick = ()=>{ analysisMetric='post'; render(); };
+  }
+
+  if(activeTab==='export'){
+    const er = document.getElementById('exportRaw');
+    if(er) er.onclick = downloadRawCsv;
+    const es = document.getElementById('exportSummary');
+    if(es) es.onclick = downloadSummaryCsv;
+    const rst = document.getElementById('resetAll');
+    if(rst) rst.onclick = ()=>{
+      if(confirm('This clears all subjects and scores from this device. Continue?')){
+        state = {subjects:[], scores:{}};
+        saveState();
+        render();
+        showToast('All data cleared');
+      }
+    };
+  }
+}
+
+function triggerDownload(filename, content){
+  const blob = new Blob([content], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadRawCsv(){
+  const header = ['Subject','Group', ...VARIABLES.flatMap(v=>[`${v.label} Pre`, `${v.label} Post`])];
+  const lines = [header.join(',')];
+  state.subjects.forEach(s=>{
+    const row = [`"${s.name}"`, getGroupInfo(s.group).label];
+    VARIABLES.forEach(v=>{
+      const sc = getScore(s.id, v.key);
+      row.push(sc.pre===''?'':sc.pre, sc.post===''?'':sc.post);
+    });
+    lines.push(row.join(','));
+  });
+  triggerDownload('elevation-raw-data.csv', lines.join('\n'));
+  showToast('Raw data downloaded');
+}
+
+function downloadSummaryCsv(){
+  const lines = [['Variable','Group','n','Pre Mean','Pre SD','Post Mean','Post SD','Mean Gain','Paired t','Paired df','Paired p'].join(',')];
+  VARIABLES.forEach(v=>{
+    GROUPS.forEach(g=>{
+      const ids = subjectsInGroup(g.key).map(s=>s.id);
+      const {pre, post} = pairedArraysForVar(ids, v.key);
+      if(pre.length===0) return;
+      const paired = tTestPaired(pre, post);
+      const gains = pre.map((p,i)=>post[i]-p);
+      lines.push([
+        `"${v.label}"`, g.label, pre.length,
+        mean(pre).toFixed(3), sd(pre).toFixed(3),
+        mean(post).toFixed(3), sd(post).toFixed(3),
+        mean(gains).toFixed(3),
+        paired?paired.t.toFixed(3):'', paired?paired.df:'', paired?paired.p.toFixed(4):''
+      ].join(','));
+    });
+  });
+  triggerDownload('elevation-summary-stats.csv', lines.join('\n'));
+  showToast('Summary stats downloaded');
+}
+
+/* ================= INIT ================= */
+loadState();
+</script>
+</body>
+</html>
